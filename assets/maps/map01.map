@@ -1,0 +1,106 @@
+# TacticalLite – Map 01  "Corridor"
+# A compact 3v3 site with three lanes: left flank, mid corridor, right catwalk
+# All units in metres.  Y=0 is ground level.
+#
+# SOLID  minX minY minZ  maxX maxY maxZ  R G B [floor]
+# WAYPOINT  id  x  y  z
+# EDGE  fromID  toID
+# OBJECTIVE  x  y  z  radius
+# SPAWN  team(0=atk,1=def)  x  y  z  yaw_deg
+
+# ─── Floor ───────────────────────────────────────────────────────────────────
+SOLID  -26  -0.25  -26   26  0.0   26   55 55 55  floor
+
+# ─── Outer boundary walls ─────────────────────────────────────────────────────
+SOLID  -26   0  -26   -25.5  4.5   26   85 85 95
+SOLID   25.5  0  -26    26   4.5   26   85 85 95
+SOLID  -26   0  -26    26   4.5  -25.5  85 85 95
+SOLID  -26   0   25.5  26   4.5   26   85 85 95
+
+# ─── Mid divider wall (creates 3 lanes) ───────────────────────────────────────
+SOLID   -1   0  -12    1   2.8   12   95 90 80
+
+# ─── Left corridor wall ───────────────────────────────────────────────────────
+SOLID  -14   0   -6  -13.5  3.5   6   90 85 80
+
+# ─── Right catwalk rail ───────────────────────────────────────────────────────
+SOLID   13.5  0  -4   14   1.0   6   90 85 80
+
+# ─── Cover objects – attacker side ────────────────────────────────────────────
+SOLID   -4   0  -14   -2   1.2  -11   110 90 70
+SOLID    2   0  -14    4   1.2  -11   110 90 70
+SOLID  -10   0  -10   -8   2.0   -8   80 95 80
+SOLID    8   0  -10   10   2.0   -8   80 95 80
+
+# ─── Mid boxes ────────────────────────────────────────────────────────────────
+SOLID   -5   0   -3   -3   1.5    0   100 85 65
+SOLID    3   0   -3    5   1.5    0   100 85 65
+SOLID   -2   0    1    2   0.9    3   110 100 75
+
+# ─── Defender-side cover ──────────────────────────────────────────────────────
+SOLID   -9   0    8   -7   2.5   12   80 80 95
+SOLID    7   0    8    9   2.5   12   80 80 95
+SOLID   -4   0   11   -2   1.3   14   100 90 70
+SOLID    2   0   11    4   1.3   14   100 90 70
+
+# ─── Objective platform ────────────────────────────────────────────────────────
+SOLID   -4   0   16    4   0.15  22   200 170 40
+OBJECTIVE  0  0.15  19  3.5
+
+# ─── Waypoint graph ───────────────────────────────────────────────────────────
+# Attacker spawn area
+WAYPOINT  0   -12  0  -18
+WAYPOINT  1     0  0  -18
+WAYPOINT  2    12  0  -18
+# Mid-map
+WAYPOINT  3   -12  0   -5
+WAYPOINT  4    -5  0   -5
+WAYPOINT  5     0  0   -5
+WAYPOINT  6     5  0   -5
+WAYPOINT  7    12  0   -5
+# Site approach
+WAYPOINT  8   -10  0    5
+WAYPOINT  9    -4  0    5
+WAYPOINT 10     4  0    5
+WAYPOINT 11    10  0    5
+# Objective area
+WAYPOINT 12    -4  0   17
+WAYPOINT 13     4  0   17
+WAYPOINT 14     0  0   20
+# Defender spawn area
+WAYPOINT 15   -10  0   21
+WAYPOINT 16    10  0   21
+
+EDGE  0  3
+EDGE  1  4
+EDGE  1  5
+EDGE  2  7
+EDGE  3  4
+EDGE  4  5
+EDGE  5  6
+EDGE  6  7
+EDGE  3  8
+EDGE  4  9
+EDGE  6  10
+EDGE  7  11
+EDGE  8  9
+EDGE  9  10
+EDGE 10  11
+EDGE  9  12
+EDGE 10  13
+EDGE 12  14
+EDGE 13  14
+EDGE 12  15
+EDGE 13  16
+EDGE 15  16
+
+# ─── Spawn points ─────────────────────────────────────────────────────────────
+# Attack (team 0)  – south end
+SPAWN  0   -14  0  -21   10
+SPAWN  0    -2  0  -21    5
+SPAWN  0    14  0  -21  -10
+
+# Defend (team 1)  – north end facing south
+SPAWN  1   -12  0   23  180
+SPAWN  1     0  0   23  180
+SPAWN  1    12  0   23  180
