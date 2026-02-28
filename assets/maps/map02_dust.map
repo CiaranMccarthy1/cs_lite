@@ -1,0 +1,284 @@
+# TacticalLite – Map 02  "Dust"
+# Dust2-inspired layout: T-spawn → Long A / Catwalk → Mid → B tunnels
+# All units in metres. Y=0 is ground level.
+#
+# Layout overview:
+#
+#   [T-SPAWN] ──── Long A ────────────────── [A SITE] ──── CT SPAWN
+#       │                                        │               │
+#       └──── Upper Mid / Catwalk ── Mid ────────┘               │
+#       │                              │                         │
+#       └──── B Tunnels ──── B Apps ── [B SITE] ────────────────┘
+#
+
+# ═══════════════════════════════════════════════════════════════
+# FLOOR
+# ═══════════════════════════════════════════════════════════════
+SOLID  -80  -0.25  -80    80   0.0   80   52 48 42  floor
+
+# ═══════════════════════════════════════════════════════════════
+# OUTER BOUNDARY WALLS  (thick, 1m)
+# ═══════════════════════════════════════════════════════════════
+SOLID  -80   0  -80   -79   5   80   70 65 58
+SOLID   79   0  -80    80   5   80   70 65 58
+SOLID  -80   0  -80    80   5  -79   70 65 58
+SOLID  -80   0   79    80   5   80   70 65 58
+
+# ═══════════════════════════════════════════════════════════════
+# T SPAWN AREA  (bottom-left, roughly -60 to -35, Z -75 to -50)
+# ═══════════════════════════════════════════════════════════════
+# Back wall divider
+SOLID  -35   0  -75   -34   4  -45   80 72 60
+# Spawn boxes (cover for T's waiting)
+SOLID  -58   0  -70   -52   1.2  -66   105 92 72
+SOLID  -48   0  -70   -42   1.2  -66   105 92 72
+SOLID  -38   0  -58   -36   2.8  -52   95 85 68
+
+# ═══════════════════════════════════════════════════════════════
+# LONG A CORRIDOR  (top path, Z -75 to 20, X -75 to -28)
+# ═══════════════════════════════════════════════════════════════
+# Left (west) long wall
+SOLID  -76   0  -75   -75   4   30   80 72 60
+# Right wall of long — creates the corridor
+SOLID  -55   0  -75   -54   4   -5   80 72 60
+# Long corner wall (the iconic far corner)
+SOLID  -54   0   -5   -28   4   -4   80 72 60
+# Long doors building (blocks sightline until close)
+SOLID  -56   0  -38   -52   4  -34   95 85 68
+SOLID  -56   0  -30   -52   4  -26   95 85 68
+# Blue box / long corner cover
+SOLID  -54   0    0   -46   1.5   6   100 110 130
+SOLID  -44   0    0   -36   1.0   4   100 110 130
+# Long A ramp (slope represented as a low box)
+SOLID  -75   0   24   -55   0.8  30   75 68 55
+
+# ═══════════════════════════════════════════════════════════════
+# A SITE  (top-right, X -28 to 20, Z -10 to 35)
+# ═══════════════════════════════════════════════════════════════
+# Site back wall
+SOLID   19   0  -15    20   4   40   80 72 60
+# A site left wall (from CT)
+SOLID  -28   0   34   20    4   35   80 72 60
+# Platform / short wall on site
+SOLID  -10   0   -8    -2   1.0   0   110 95 70
+# A car / big box
+SOLID   -5   0    5     5   1.8  14   120 105 80
+# A site corner stack
+SOLID    8   0   18    18   2.5  28   105 88 65
+# Goose / small crate
+SOLID   -8   0   20    -2   0.9  25   115 100 75
+# CT short stairs wall
+SOLID   14   0   -8    20   4    0   80 72 60
+SOLID   14   0.8  0    20   4    8   80 72 60   # raised ground short
+
+# ═══════════════════════════════════════════════════════════════
+# SHORT / CT SIDE  (right corridor, X 14 to 45, Z -40 to 10)
+# ═══════════════════════════════════════════════════════════════
+SOLID   44   0  -42    45   4   12   80 72 60
+SOLID   14   0  -42    44   4  -41   80 72 60
+# Short wall (boost spot)
+SOLID   20   0  -18    30   1.2  -14  105 92 72
+# CT box stack
+SOLID   32   0   -8    38   2.0   -2  115 100 78
+
+# ═══════════════════════════════════════════════════════════════
+# CT SPAWN  (right side, X 30 to 78, Z -42 to 42)
+# ═══════════════════════════════════════════════════════════════
+# CT spawn divider wall
+SOLID   44   0  -42    45   4   42   80 72 60
+# CT cover crates
+SOLID   52   0  -30    58   1.5  -24  105 92 72
+SOLID   60   0  -10    66   1.5   -4  105 92 72
+SOLID   52   0   18    58   1.5   24  105 92 72
+# CT to B back wall
+SOLID   44   0   40    78   4   41   80 72 60
+
+# ═══════════════════════════════════════════════════════════════
+# MID  (centre, X -30 to 14, Z -42 to -8)
+# ═══════════════════════════════════════════════════════════════
+# Mid top wall (upper mid)
+SOLID  -30   0  -42   -29   4  -10   80 72 60
+# Mid lower wall
+SOLID  -14   0  -42   -13   4  -10   80 72 60
+# Xbox / mid box
+SOLID   -8   0  -32    -2   1.8  -26  120 105 80
+# Mid doors building
+SOLID   -4   0  -42     2   4  -36   95 85 68
+SOLID   -4   0  -28     2   4  -22   95 85 68
+# Catwalk wall (upper mid to A)
+SOLID  -30   0  -10   -14   4   -9   80 72 60
+# Catwalk ledge
+SOLID  -28   1.5 -40   -16   1.7  -12  85 78 62
+
+# ═══════════════════════════════════════════════════════════════
+# B TUNNELS  (bottom path, X -75 to -20, Z 10 to 55)
+# ═══════════════════════════════════════════════════════════════
+# Upper tunnel wall (north side)
+SOLID  -75   0   10   -20   4   11   80 72 60
+# Lower tunnel wall (south side)
+SOLID  -75   0   44   -20   4   45   80 72 60
+# Tunnel split pillar
+SOLID  -48   0   22   -46   4   32   90 80 65
+# Tunnel entrance boxes
+SOLID  -72   0   14   -66   1.2  20  105 92 72
+SOLID  -62   0   36   -56   1.2  42  105 92 72
+
+# ═══════════════════════════════════════════════════════════════
+# B APARTMENTS / UPPER B  (X -55 to -18, Z 44 to 70)
+# ═══════════════════════════════════════════════════════════════
+SOLID  -55   0   44   -54   4   70   80 72 60
+SOLID  -18   0   68   -16   4   44   80 72 60
+# B apps window box
+SOLID  -46   0   52   -38   2.5  60  110 95 70
+# B van
+SOLID  -34   0   50   -26   1.8  58  115 100 78
+
+# ═══════════════════════════════════════════════════════════════
+# B SITE  (X -18 to 30, Z 42 to 72)
+# ═══════════════════════════════════════════════════════════════
+# B site back wall
+SOLID  -18   0   71    30   4   72   80 72 60
+# B site left wall
+SOLID  -18   0   42    -17  4   72   80 72 60
+# B big box (the main B cover)
+SOLID   -8   0   48     4   2.5  60  120 105 80
+# B barrels
+SOLID    6   0   50    12   1.5  56  100 88 65
+# B short wall (CT side)
+SOLID   14   0   42    28   1.0  48  110 95 70
+# B car
+SOLID    4   0   62    14   1.5  70  115 100 78
+
+# ═══════════════════════════════════════════════════════════════
+# B TO CT CONNECTOR  (X 14 to 44, Z 40 to 70)
+# ═══════════════════════════════════════════════════════════════
+SOLID   28   0   42    29   4   70   80 72 60
+SOLID   28   0   68    44   4   70   80 72 60
+
+# ═══════════════════════════════════════════════════════════════
+# OBJECTIVES
+# ═══════════════════════════════════════════════════════════════
+# A Site bomb plant
+OBJECTIVE   2  0  20  4.5
+
+# B Site bomb plant (second objective — attacker wins reaching either)
+# (In-game only one objective is active; for MVP use A site)
+
+# ═══════════════════════════════════════════════════════════════
+# WAYPOINT GRAPH
+# ═══════════════════════════════════════════════════════════════
+# T Spawn cluster
+WAYPOINT   0   -55  0  -68
+WAYPOINT   1   -45  0  -68
+WAYPOINT   2   -38  0  -60
+
+# Long A path
+WAYPOINT   3   -65  0  -50
+WAYPOINT   4   -65  0  -30
+WAYPOINT   5   -65  0  -10
+WAYPOINT   6   -60  0    5
+WAYPOINT   7   -48  0    5
+WAYPOINT   8   -36  0    5
+
+# A site
+WAYPOINT   9   -18  0   10
+WAYPOINT  10    -4  0   18
+WAYPOINT  11     4  0   10
+WAYPOINT  12    10  0   26
+
+# Short / CT
+WAYPOINT  13    24  0  -18
+WAYPOINT  14    36  0   -6
+WAYPOINT  15    40  0   20
+
+# CT Spawn
+WAYPOINT  16    55  0  -28
+WAYPOINT  17    55  0    0
+WAYPOINT  18    55  0   28
+
+# Mid
+WAYPOINT  19   -22  0  -36
+WAYPOINT  20   -22  0  -20
+WAYPOINT  21    -8  0  -30
+WAYPOINT  22     6  0  -30
+
+# B Tunnels
+WAYPOINT  23   -55  0   18
+WAYPOINT  24   -55  0   36
+WAYPOINT  25   -38  0   36
+WAYPOINT  26   -28  0   36
+
+# B Site
+WAYPOINT  27   -12  0   52
+WAYPOINT  28     4  0   54
+WAYPOINT  29    16  0   60
+WAYPOINT  30    20  0   50
+
+# B to CT
+WAYPOINT  31    36  0   54
+
+# EDGES — T side movement
+EDGE  0  1
+EDGE  1  2
+EDGE  2  3
+EDGE  0  3
+EDGE  3  4
+EDGE  4  5
+EDGE  5  6
+EDGE  6  7
+EDGE  7  8
+EDGE  8  9
+
+# T to mid
+EDGE  2  19
+EDGE  19  20
+EDGE  20  21
+EDGE  21  22
+EDGE  22  13
+
+# T to B tunnels
+EDGE  1  23
+EDGE  23  24
+EDGE  24  25
+EDGE  25  26
+EDGE  26  27
+
+# A site connections
+EDGE  9  10
+EDGE  10  11
+EDGE  11  12
+EDGE  12  15
+EDGE  9  20
+
+# CT connections
+EDGE  13  14
+EDGE  14  15
+EDGE  15  17
+EDGE  16  17
+EDGE  17  18
+EDGE  16  13
+
+# CT to B
+EDGE  18  31
+EDGE  31  30
+EDGE  30  29
+EDGE  29  28
+EDGE  28  27
+
+# B site internal
+EDGE  27  28
+EDGE  28  29
+EDGE  29  30
+
+# ═══════════════════════════════════════════════════════════════
+# SPAWN POINTS
+# ═══════════════════════════════════════════════════════════════
+# Attackers (T side) — bottom left
+SPAWN  0   -55  0.1  -60    45
+SPAWN  0   -45  0.1  -60    50
+SPAWN  0   -50  0.1  -58    40
+
+# Defenders (CT side) — right side
+SPAWN  1    55  0.1  -24   200
+SPAWN  1    55  0.1    4   190
+SPAWN  1    55  0.1   28   210

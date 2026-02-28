@@ -16,6 +16,7 @@
 #include "ai/BotAI.h"
 #include "utility/UtilitySystem.h"
 #include "render/Renderer.h"
+#include "audio/AudioSystem.h"
 
 // ─── Pi 4 specific: force GLES2 context before window creation ───────────────
 static void ConfigurePi() {
@@ -37,6 +38,8 @@ int main() {
     DisableCursor();  // lock + hide mouse for FPS look
 
     InitAudioDevice();
+    AudioSystem audio;
+    audio.Init();
 
     // ── World & systems ───────────────────────────────────────────────────
     World    world;
@@ -77,12 +80,12 @@ int main() {
         world.objective = { {5,0,8}, 3.0f, 0, false };
         // Spawn points
         md.spawns = {
-            { Team::ATTACK, {-12,0,-15}, 0.0f },
-            { Team::ATTACK, {-14,0,-13}, 0.2f },
-            { Team::ATTACK, {-10,0,-13}, -0.2f},
-            { Team::DEFEND, { 12,0, 12}, (float)PI },
-            { Team::DEFEND, { 14,0, 10}, (float)PI - 0.2f },
-            { Team::DEFEND, { 10,0, 10}, (float)PI + 0.2f },
+            { Team::ATTACK, {-12,0.1f,-15}, 0.0f },
+            { Team::ATTACK, {-14,0.1f,-13}, 0.2f },
+            { Team::ATTACK, {-10,0.1f,-13}, -0.2f},
+            { Team::DEFEND, { 12,0.1f, 12}, (float)PI },
+            { Team::DEFEND, { 14,0.1f, 10}, (float)PI - 0.2f },
+            { Team::DEFEND, { 10,0.1f, 10}, (float)PI + 0.2f },
         };
     }
 
@@ -116,7 +119,7 @@ int main() {
         }
 
         // ── Simulation updates ────────────────────────────────────────────
-        ProcessInput(world, dt);
+        ProcessInput(world, dt, audio);
         UpdateRound(world, md, dt);
         if(world.roundState == RoundState::ACTIVE) {
             UpdateBots(world, dt);
@@ -171,6 +174,7 @@ int main() {
 
     // ── Cleanup ───────────────────────────────────────────────────────────
     renderer.Shutdown();
+    audio.Shutdown();
     CloseAudioDevice();
     CloseWindow();
     return 0;

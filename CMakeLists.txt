@@ -39,7 +39,8 @@ file(GLOB_RECURSE SOURCES
 
 add_executable(TacticalLite ${SOURCES}
         src/main.cpp
-        src/main.cpp)
+        src/main.cpp
+        src/audio/AudioSystem.h)
 
 target_include_directories(TacticalLite PRIVATE
   src

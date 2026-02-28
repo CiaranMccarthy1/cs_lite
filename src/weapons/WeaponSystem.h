@@ -2,8 +2,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  WeaponSystem.h  –  Hitscan shooting, recoil, reload
 // ─────────────────────────────────────────────────────────────────────────────
+#include "AudioSystem.h"
 #include "../World.h"
 #include "../game/Physics.h"
+
+// Forward declare so audio param can default to nullptr without full include
+struct AudioSystem;
 #include <raymath.h>
 #include <cmath>
 #include <cstdlib>
@@ -75,9 +79,11 @@ inline ShotResult FireRay(
 }
 
 // ─── Full weapon fire (handles pellets, spread, cooldown, ammo) ───────────────
-inline void WeaponFire(Pawn& shooter, World& world, bool isADS) {
+inline void WeaponFire(Pawn& shooter, World& world, bool isADS, AudioSystem* audio = nullptr) {
     WeaponState& ws  = shooter.weapon;
     if(!ws.canFire()) return;
+
+    if (audio) audio->PlayShoot(ws.id);
 
     const WeaponStats& st = ws.stats();
     ws.ammoMag--;

@@ -95,12 +95,12 @@ static void MoveBotToward(Pawn& bot, Vector3 target, float dt,
 
     bot.velocity.x = move.x * BOT_SPEED;
     bot.velocity.z = move.z * BOT_SPEED;
-    if(!bot.onGround) bot.velocity.y += GRAVITY * dt;
-    else              bot.velocity.y  = 0;
+    bot.velocity.y += GRAVITY * dt; if(bot.velocity.y < -50.0f) bot.velocity.y = -50.0f;
 
-    bool onGnd = bot.onGround;
+
+    bool onGnd = false;
     bot.xform.pos = SweepAABB(bot.xform.pos, bot.velocity, dt, onGnd, solids);
-    bot.onGround  = onGnd;
+    if(onGnd && bot.velocity.y <= 0.0f) { bot.velocity.y = 0.0f; bot.onGround = true; } else if(!onGnd) { bot.onGround = false; }
 
     // Face movement direction
     bot.xform.yaw = atan2f(toTarget.x, toTarget.z);
@@ -224,11 +224,11 @@ inline void UpdateBots(World& world, float dt) {
                 Vector3 vel = Vector3Scale(right, brain.strafeSign * BOT_SPEED * 0.5f);
                 bot.velocity.x = vel.x;
                 bot.velocity.z = vel.z;
-                if(!bot.onGround) bot.velocity.y += GRAVITY * dt;
-                else bot.velocity.y = 0;
-                bool og = bot.onGround;
+                bot.velocity.y += GRAVITY * dt; if(bot.velocity.y < -50.0f) bot.velocity.y = -50.0f;
+
+                bool og = false;
                 bot.xform.pos = SweepAABB(bot.xform.pos, bot.velocity, dt, og, world.solids);
-                bot.onGround = og;
+                if(og && bot.velocity.y <= 0.0f) { bot.velocity.y = 0.0f; bot.onGround = true; } else if(!og) { bot.onGround = false; }
             }
 
             // Shoot after reaction delay

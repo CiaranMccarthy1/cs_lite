@@ -1,85 +1,100 @@
 #pragma once
 // ─────────────────────────────────────────────────────────────────────────────
-//  Physics.h  –  AABB sweep + gravity; no 3rd-party library
+//  Physics.h  –  AABB sweep + raycasts
+//
+//  Corner-clipping fix: each axis pass projects the movement delta onto that
+//  axis only, so we never accidentally resolve a wall hit as a floor hit.
+//  A SKIN constant keeps the player slightly away from surfaces so the
+//  next frame never starts inside geometry.
 // ─────────────────────────────────────────────────────────────────────────────
 #include "../World.h"
 #include <raymath.h>
-#include <algorithm>
 #include <cmath>
+#include <algorithm>
 
-// Sweep a moving AABB against all world solids.
-// Returns the resolved position and sets onGround.
+constexpr float PHYS_SKIN = 0.02f;   // gap kept between player and surfaces
+
 inline Vector3 SweepAABB(
-    Vector3            pos,
-    Vector3            vel,
-    float              dt,
-    bool&              onGround,
+    Vector3                      pos,
+    Vector3&                     vel,
+    float                        dt,
+    bool&                        hitFloor,
     const std::vector<MapSolid>& solids)
 {
-    onGround = false;
-    Vector3 delta = Vector3Scale(vel, dt);
+    hitFloor = false;
+    const float R = PLAYER_RADIUS + PHYS_SKIN;
+    const float H = PLAYER_HEIGHT;
 
-    // Axis-separated sweep (X, then Z, then Y) avoids corner-clipping
-    constexpr float SKIN = 0.001f;
-
-    auto testAxis = [&](Vector3 tryPos, int axis) -> float {
-        float r  = PLAYER_RADIUS;
-        float h  = PLAYER_HEIGHT;
-        BoundingBox box = {
-            { tryPos.x - r, tryPos.y,       tryPos.z - r },
-            { tryPos.x + r, tryPos.y + h,   tryPos.z + r }
-        };
-        for(auto& s : solids) {
-            if(CheckCollisionBoxes(box, s.bounds)) {
-                // push out on this axis
-                float penetration = 0;
-                if(axis == 0) {
-                    float overlap0 = s.bounds.max.x - (tryPos.x - r);
-                    float overlap1 = (tryPos.x + r) - s.bounds.min.x;
-                    penetration = (overlap0 < overlap1) ? overlap0 : -overlap1;
-                } else if(axis == 1) {
-                    float overlap0 = s.bounds.max.y - tryPos.y;
-                    float overlap1 = (tryPos.y + h) - s.bounds.min.y;
-                    if(overlap0 < overlap1) { penetration = overlap0; onGround = s.isFloor || overlap0 < 0.1f; }
-                    else                   { penetration = -overlap1; }
-                } else {
-                    float overlap0 = s.bounds.max.z - (tryPos.z - r);
-                    float overlap1 = (tryPos.z + r) - s.bounds.min.z;
-                    penetration = (overlap0 < overlap1) ? overlap0 : -overlap1;
-                }
-                return penetration;
-            }
-        }
-        return 0.0f;
+    auto makeBox = [&](Vector3 p) -> BoundingBox {
+        return { {p.x-R, p.y, p.z-R}, {p.x+R, p.y+H, p.z+R} };
     };
 
-    // X axis
-    Vector3 tryX = { pos.x + delta.x, pos.y, pos.z };
-    float px = testAxis(tryX, 0);
-    tryX.x += px;
-    pos.x = tryX.x;
+    // ── X pass ───────────────────────────────────────────────────────────────
+    {
+        Vector3 try1 = {pos.x + vel.x * dt, pos.y, pos.z};
+        for(auto& s : solids) {
+            BoundingBox box = makeBox(try1);
+            if(!CheckCollisionBoxes(box, s.bounds)) continue;
+            // Which side are we coming from?
+            float overlapRight = s.bounds.max.x - (try1.x - R);  // entered from left
+            float overlapLeft  = (try1.x + R) - s.bounds.min.x;  // entered from right
+            if(overlapRight > 0 && overlapRight < overlapLeft)
+                try1.x += overlapRight + PHYS_SKIN;
+            else if(overlapLeft > 0)
+                try1.x -= overlapLeft + PHYS_SKIN;
+            vel.x = 0.0f;
+        }
+        pos.x = try1.x;
+    }
 
-    // Z axis
-    Vector3 tryZ = { pos.x, pos.y, pos.z + delta.z };
-    float pz = testAxis(tryZ, 2);
-    tryZ.z += pz;
-    pos.z = tryZ.z;
+    // ── Z pass ───────────────────────────────────────────────────────────────
+    {
+        Vector3 try1 = {pos.x, pos.y, pos.z + vel.z * dt};
+        for(auto& s : solids) {
+            BoundingBox box = makeBox(try1);
+            if(!CheckCollisionBoxes(box, s.bounds)) continue;
+            float overlapFwd  = s.bounds.max.z - (try1.z - R);
+            float overlapBack = (try1.z + R) - s.bounds.min.z;
+            if(overlapFwd > 0 && overlapFwd < overlapBack)
+                try1.z += overlapFwd + PHYS_SKIN;
+            else if(overlapBack > 0)
+                try1.z -= overlapBack + PHYS_SKIN;
+            vel.z = 0.0f;
+        }
+        pos.z = try1.z;
+    }
 
-    // Y axis
-    Vector3 tryY = { pos.x, pos.y + delta.y, pos.z };
-    float py = testAxis(tryY, 1);
-    if(py != 0) delta.y = 0; // zero out velocity on collision
-    tryY.y += py;
-    if(py > -SKIN) onGround = true;
-    pos.y = tryY.y;
+    // ── Y pass ───────────────────────────────────────────────────────────────
+    {
+        Vector3 try1 = {pos.x, pos.y + vel.y * dt, pos.z};
+        for(auto& s : solids) {
+            BoundingBox box = makeBox(try1);
+            if(!CheckCollisionBoxes(box, s.bounds)) continue;
+            float overlapUp   = s.bounds.max.y - try1.y;         // floor below
+            float overlapDown = (try1.y + H) - s.bounds.min.y;   // ceiling above
+            if(overlapUp > 0 && overlapUp < overlapDown) {
+                // Floor hit
+                try1.y += overlapUp + PHYS_SKIN;
+                hitFloor = true;
+            } else if(overlapDown > 0) {
+                // Ceiling hit
+                try1.y -= overlapDown + PHYS_SKIN;
+                vel.y = 0.0f;
+            }
+        }
+        pos.y = try1.y;
+    }
 
-    // Hard floor at y=0 as a safety net
-    if(pos.y < 0) { pos.y = 0; onGround = true; }
+    // Hard floor safety net
+    if(pos.y < 0.0f) {
+        pos.y    = 0.0f;
+        hitFloor = true;
+    }
 
     return pos;
 }
 
-// ─── Raycast against all world solids ────────────────────────────────────────
+// ─── Raycast against world geometry ──────────────────────────────────────────
 struct HitResult {
     bool    hit        = false;
     float   distance   = 0.0f;
@@ -88,18 +103,17 @@ struct HitResult {
 };
 
 inline HitResult RaycastSolids(
-    Vector3 origin,
-    Vector3 direction,
-    float   maxDist,
+    Vector3                      origin,
+    Vector3                      direction,
+    float                        maxDist,
     const std::vector<MapSolid>& solids)
 {
     HitResult best;
     best.distance = maxDist + 1.0f;
-    Ray ray = { origin, direction };
-
+    Ray ray = {origin, direction};
     for(int i = 0; i < (int)solids.size(); i++) {
         RayCollision rc = GetRayCollisionBox(ray, solids[i].bounds);
-        if(rc.hit && rc.distance > 0 && rc.distance < best.distance) {
+        if(rc.hit && rc.distance > 0.0f && rc.distance < best.distance) {
             best.hit        = true;
             best.distance   = rc.distance;
             best.point      = rc.point;
@@ -110,20 +124,20 @@ inline HitResult RaycastSolids(
     return best;
 }
 
-// ─── Check if a smoke zone occludes a ray from A to B ────────────────────────
+// ─── Smoke occlusion check ────────────────────────────────────────────────────
 inline bool RayBlockedBySmoke(
-    Vector3 from, Vector3 to,
+    Vector3                       from,
+    Vector3                       to,
     const std::vector<SmokeZone>& smokes)
 {
     Vector3 dir = Vector3Subtract(to, from);
     float   len = Vector3Length(dir);
     if(len < 0.01f) return false;
     dir = Vector3Scale(dir, 1.0f / len);
-    Ray ray = { from, dir };
-
+    Ray ray = {from, dir};
     for(auto& smoke : smokes) {
         RayCollision rc = GetRayCollisionSphere(ray, smoke.pos, smoke.radius);
-        if(rc.hit && rc.distance > 0 && rc.distance < len) return true;
+        if(rc.hit && rc.distance > 0.0f && rc.distance < len) return true;
     }
     return false;
 }

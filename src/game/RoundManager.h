@@ -44,7 +44,7 @@ inline void SpawnPawns(World& world, const MapData& md) {
         int& idx = (p.team == Team::ATTACK) ? attackIdx : defendIdx;
         if(!spList.empty()) {
             auto& sp     = spList[idx % spList.size()];
-            p.xform.pos  = { sp.pos.x, sp.pos.y + 0.01f, sp.pos.z };
+            p.xform.pos  = { sp.pos.x, sp.pos.y + 0.1f, sp.pos.z };
             p.xform.yaw  = sp.yaw;
             p.xform.pitch= 0;
             idx++;
