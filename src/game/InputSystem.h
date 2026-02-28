@@ -46,8 +46,8 @@ inline void ProcessInput(World& world, float dt, AudioSystem& audio) {
     if(IsKeyDown(BIND_LEFT))  moveDir = Vector3Add(moveDir, right);
     if(IsKeyDown(BIND_RIGHT)) moveDir = Vector3Subtract(moveDir, right);
 
-    bool sprinting = IsKeyDown(KEY_LEFT_SHIFT);
-    float spd = PLAYER_SPEED * (sprinting ? 1.5f : 1.0f);
+    bool walking = IsKeyDown(KEY_LEFT_SHIFT);
+    float spd = PLAYER_SPEED * (walking ? 0.52f : 1.0f); // Walk modifier for CS 1.6
     if(Vector3Length(moveDir) > 0)
         moveDir = Vector3Scale(Vector3Normalize(moveDir), spd);
 

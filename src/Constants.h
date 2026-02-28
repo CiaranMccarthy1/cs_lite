@@ -24,11 +24,11 @@ constexpr float ROUND_TIME_SEC      = 90.0f;
 constexpr float OBJECTIVE_CAPTURE_SEC = 10.0f;  // hold to win
 
 // ─── Movement ────────────────────────────────────────────────────────────────
-constexpr float PLAYER_SPEED       = 5.0f;   // m/s
+constexpr float PLAYER_SPEED       = 4.2f;   // CS 1.6 running m/s
 constexpr float PLAYER_HEIGHT      = 1.75f;  // camera eye height
 constexpr float PLAYER_RADIUS      = 0.4f;
-constexpr float GRAVITY            = -18.0f;
-constexpr float JUMP_VELOCITY      = 6.5f;
+constexpr float GRAVITY            = -20.0f;
+constexpr float JUMP_VELOCITY      = 6.8f;
 constexpr float MOUSE_SENSITIVITY  = 0.002f;
 
 // ─── Camera ──────────────────────────────────────────────────────────────────
@@ -62,11 +62,11 @@ struct WeaponStats {
 // Indexed by WeaponID
 constexpr std::array<WeaponStats, 5> WEAPON_TABLE = {{
     // name,      dmg, mag, RPM,   reload, spread,  adsMult, range, pel,  semi
-    { "Pistol",    35,  12,  300, 1.5f,  0.030f, 0.40f,  80.0f,  1,  true  },
-    { "SMG",       22,  25,  900, 2.0f,  0.080f, 0.60f,  50.0f,  1,  false },
-    { "Rifle",     30,  30,  600, 2.2f,  0.020f, 0.30f, 150.0f,  1,  false },
-    { "Sniper",   100,   5,   40, 3.5f,  0.005f, 0.10f, 300.0f,  1,  true  },
-    { "Shotgun",   18,   6,  120, 2.8f,  0.200f, 0.50f,  20.0f, 8,  false },
+    { "Pistol",    34,  12,  400, 2.2f,  0.030f, 0.40f,  80.0f,  1,  true  },
+    { "SMG",       26,  30,  800, 2.5f,  0.060f, 0.60f,  60.0f,  1,  false },
+    { "Rifle",     36,  30,  600, 3.1f,  0.025f, 0.30f, 150.0f,  1,  false },
+    { "Sniper",   115,  10,   40, 3.6f,  0.002f, 0.00f, 300.0f,  1,  true  }, // AWP (huge base dmg, no hipfire acc)
+    { "Shotgun",   22,   8,   70, 3.5f,  0.150f, 0.50f,  20.0f, 9,  false },
 }};
 
 // ─── Utility ─────────────────────────────────────────────────────────────────
