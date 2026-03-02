@@ -133,9 +133,10 @@ private:
     void DrawGrenades(const World& world) {
         for(auto& g : world.grenades) {
             if(g.detonated) continue;
-            Color c = (g.type == UtilityID::FRAG)  ? (Color){60,200,60,255}
-                    : (g.type == UtilityID::SMOKE)  ? (Color){160,160,160,255}
-                    :                                  (Color){240,240,60,255};
+            Color c = (g.type == UtilityID::FRAG) ? Color{ 60,200,60,255 }
+                : (g.type == UtilityID::SMOKE) ? Color{ 160,160,160,255 }
+                : Color{ 240,240,60,255 };
+
             DrawSphere(g.pos, 0.12f, c);
         }
     }
@@ -250,9 +251,10 @@ private:
                             : "DRAW";
             int mw = MeasureText(msg, 48);
             DrawRectangle(0, sh/2 - 70, sw, 80, {0,0,0,160});
-            DrawText(msg, sw/2 - mw/2, sh/2 - 55, 48,
-                     world.roundWinner == Team::ATTACK ? (Color){255,100,100,255}
-                                                       : (Color){100,150,255,255});
+            DrawText(msg, sw / 2 - mw / 2, sh / 2 - 55, 48,
+                world.roundWinner == Team::ATTACK ? Color{ 255,100,100,255 }
+                : Color{ 100,150,255,255 });
+
         }
 
         // ── Mini-map (top-right, 120×120) ─────────────────────────────────

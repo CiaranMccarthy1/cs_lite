@@ -33,7 +33,7 @@ int main() {
   ConfigurePi();
 
   // ── Window ────────────────────────────────────────────────────────────
-  SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
+  SetConfigFlags(FLAG_MSAA_4X_HINT);
   InitWindow(RENDER_W, RENDER_H, "TacticalLite – 3v3 MVP");
   SetTargetFPS(TARGET_FPS);
   DisableCursor(); // lock + hide mouse for FPS look

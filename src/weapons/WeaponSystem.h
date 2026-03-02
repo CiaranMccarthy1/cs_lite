@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 #include "../World.h"
 #include "../game/Physics.h"
-#include "AudioSystem.h"
+#include "../audio/AudioSystem.h"
 
 // Forward declare so audio param can default to nullptr without full include
 struct AudioSystem;

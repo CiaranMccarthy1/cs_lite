@@ -4,57 +4,43 @@ project(TacticalLite VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# ─── Build type ───────────────────────────────────────────────────────────────
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
-
-# ─── Raspberry Pi 4 tuning ────────────────────────────────────────────────────
-# Targets the Cortex-A72 (BCM2711) with NEON SIMD; strip dead code.
+# ─── Raspberry Pi 4 tuning (Optimized for ARM) ──────────────────────────────
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
   add_compile_options(-O2)
-  if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64|ARM64")
-    if(APPLE)
-      add_compile_options(-mcpu=apple-m1)   # or omit entirely, clang auto-tunes
-    else()
+  # Only apply these flags on Linux ARM (Pi), not Mac ARM
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64" AND NOT APPLE AND NOT WIN32)
       add_compile_options(-march=armv8-a+simd -mtune=cortex-a72)
-    endif()
   endif()
 endif()
 
-# ─── Find Raylib ──────────────────────────────────────────────────────────────
-# Install raylib via: sudo apt install libraylib-dev  OR build from source.
-find_package(raylib 4.5 REQUIRED)
+# ─── Setup Raylib (FetchContent handles the OS differences) ──────────────────
+include(FetchContent)
+FetchContent_Declare(
+  raylib
+  URL https://github.com/raysan5/raylib/archive/refs/tags/5.0.tar.gz
+)
+FetchContent_MakeAvailable(raylib)
 
 # ─── Sources ──────────────────────────────────────────────────────────────────
-file(GLOB_RECURSE SOURCES
-  src/*.cpp
-  src/ai/*.cpp
-  src/weapons/*.cpp
-  src/utility/*.cpp
-  src/audio/*.cpp
-  src/render/*.cpp
-  src/game/*.cpp
-)
+file(GLOB_RECURSE SOURCES "src/*.cpp")
 
-add_executable(TacticalLite ${SOURCES}
-        src/main.cpp
-        src/main.cpp
-        src/audio/AudioSystem.h)
+# Create executable
+add_executable(TacticalLite ${SOURCES} src/audio/AudioSystem.h)
 
-target_include_directories(TacticalLite PRIVATE
-  src
-  src/ai
-  src/weapons
-  src/utility
-  src/audio
-  src/render
-  src/game
-)
+# ─── Headers ──────────────────────────────────────────────────────────────────
+target_include_directories(TacticalLite PRIVATE src) # Simplified
 
-target_link_libraries(TacticalLite PRIVATE raylib m pthread)
+# ─── Smart Linking (The Cross-Platform Way) ──────────────────────────────────
+# Raylib target already knows most of its dependencies.
+target_link_libraries(TacticalLite PRIVATE raylib)
 
-# ─── Copy assets next to binary ───────────────────────────────────────────────
+# Only link math and pthread on Unix systems (Pi/Mac), not Windows
+if(UNIX)
+    target_link_libraries(TacticalLite PRIVATE m pthread)
+endif()
+
+# ─── Copy assets ──────────────────────────────────────────────────────────────
+# Works on all platforms to ensure textures are where the .exe is
 add_custom_command(TARGET TacticalLite POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:TacticalLite>/assets

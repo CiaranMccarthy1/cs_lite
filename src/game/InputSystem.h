@@ -32,9 +32,10 @@ inline void ProcessInput(World& world, float dt, AudioSystem& audio) {
 
     // ── Mouse look ────────────────────────────────────────────────────────
     Vector2 md = GetMouseDelta();
-    player.xform.yaw   += md.x * MOUSE_SENSITIVITY;
-    player.xform.pitch -= md.y * MOUSE_SENSITIVITY;
-    player.xform.pitch  = std::clamp(player.xform.pitch, -1.45f, 1.45f);
+    player.xform.yaw -= md.x * MOUSE_SENSITIVITY;   // Invert X axis
+    player.xform.pitch -= md.y * MOUSE_SENSITIVITY;   // Invert Y axis
+    player.xform.pitch = std::clamp(player.xform.pitch, -1.45f, 1.45f);
+
 
     // ── Horizontal movement ───────────────────────────────────────────────
     Vector3 forward = { sinf(player.xform.yaw), 0, cosf(player.xform.yaw) };

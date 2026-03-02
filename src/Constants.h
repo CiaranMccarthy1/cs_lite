@@ -12,7 +12,7 @@
 // ─── Display ─────────────────────────────────────────────────────────────────
 constexpr int   RENDER_W      = 1280;
 constexpr int   RENDER_H      = 720;
-constexpr int   TARGET_FPS    = 60;
+constexpr int   TARGET_FPS    = 200;
 constexpr float ASPECT        = (float)RENDER_W / (float)RENDER_H;
 
 // ─── Teams ───────────────────────────────────────────────────────────────────
