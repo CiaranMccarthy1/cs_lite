@@ -30,6 +30,8 @@ struct BotBrain {
     Vector3     lastKnown   = {};    // last seen enemy position
     float       visionTimer = 0.0f;  // countdown to next raycast check
     float       reactionTimer = 0.0f;// delay before shooting
+    float       retreatTimer = 0.0f; // max time to stay in retreat
+    float       lostSightTimer = 0.0f;
     float       strafeTimer = 0.0f;  // stagger direction change
     float       strafeSign  = 1.0f;
     bool        hasSightLine= false;
@@ -38,10 +40,28 @@ struct BotBrain {
 // One BotBrain per bot; index matches World::pawns index
 static BotBrain s_brains[MAX_PAWNS];
 
+static bool HasLineOfSightToTarget(const Pawn& bot, const Pawn& target, const World& world) {
+    Vector3 eye = bot.eyePos();
+    Vector3 targetPos = {
+        target.xform.pos.x,
+        target.xform.pos.y + target.height() * 0.6f,
+        target.xform.pos.z
+    };
+    Vector3 toTarget = Vector3Subtract(targetPos, eye);
+    float dist = Vector3Length(toTarget);
+    if(dist < 0.01f) return true;
+
+    Vector3 dir = Vector3Scale(toTarget, 1.0f / dist);
+    HitResult hr = RaycastSolids(eye, dir, dist, world.solids);
+    if(hr.hit && hr.distance < dist - 0.15f) return false;
+    if(RayBlockedBySmoke(eye, targetPos, world.smokes)) return false;
+    return true;
+}
+
 // ─── Find nearest enemy (respects smoke occlusion) ───────────────────────────
 static int FindVisibleEnemy(int botID, const World& world) {
     const Pawn& bot = world.pawns[botID];
-    Vector3     eye = const_cast<Pawn&>(world.pawns[botID]).eyePos();
+    Vector3     eye = bot.eyePos();
 
     float bestDist = BOT_VISION_RANGE * BOT_VISION_RANGE;
     int   bestID   = -1;
@@ -58,7 +78,7 @@ static int FindVisibleEnemy(int botID, const World& world) {
         if(d2 > bestDist) continue;
 
         // FOV check
-        Vector3 eyeDir = const_cast<Pawn&>(world.pawns[botID]).lookDir();
+        Vector3 eyeDir = bot.lookDir();
         float   dot    = Vector3DotProduct(Vector3Normalize(toEnemy), eyeDir);
         if(dot < BOT_VISION_DOT - 0.3f) continue;  // bots have slightly wider awareness
 
@@ -99,7 +119,7 @@ static void MoveBotToward(Pawn& bot, Vector3 target, float dt,
 
 
     bool onGnd = false;
-    bot.xform.pos = SweepAABB(bot.xform.pos, bot.velocity, dt, onGnd, solids);
+    bot.xform.pos = SweepAABB(bot.xform.pos, bot.velocity, dt, onGnd, solids, bot.height());
     if(onGnd && bot.velocity.y <= 0.0f) { bot.velocity.y = 0.0f; bot.onGround = true; } else if(!onGnd) { bot.onGround = false; }
 
     // Face movement direction
@@ -154,20 +174,35 @@ inline void UpdateBots(World& world, float dt) {
             brain.visionTimer = 1.0f / BOT_RAYCAST_HZ;
             int vis = FindVisibleEnemy(i, world);
             if(vis >= 0) {
+                bool reacquire = (brain.targetID != vis) ||
+                                 (brain.state != BotFSMState::ENGAGE) ||
+                                 !brain.hasSightLine;
                 brain.targetID  = vis;
                 brain.lastKnown = world.pawns[vis].xform.pos;
                 brain.hasSightLine = true;
+                brain.lostSightTimer = 0.0f;
                 brain.state = BotFSMState::ENGAGE;
+
+                if(reacquire) {
+                    brain.reactionTimer = BOT_REACTION_MS / 1000.0f;
+                }
             } else if(brain.targetID >= 0) {
+                if(brain.hasSightLine) {
+                    brain.reactionTimer = BOT_REACTION_MS / 1000.0f;
+                }
                 brain.hasSightLine = false;
+                brain.lostSightTimer = 0.0f;
                 if(brain.state == BotFSMState::ENGAGE)
                     brain.state = BotFSMState::SEARCH;
             }
         }
 
         // ── Retreat trigger ───────────────────────────────────────────────
-        if(bot.hp < 25 && world.aliveCount(bot.team) > 1)
+        if(bot.hp < 25 && world.aliveCount(bot.team) > 1 &&
+           brain.state != BotFSMState::RETREAT) {
             brain.state = BotFSMState::RETREAT;
+            brain.retreatTimer = 2.5f;
+        }
 
         // ── FSM ──────────────────────────────────────────────────────────
         switch(brain.state) {
@@ -192,11 +227,13 @@ inline void UpdateBots(World& world, float dt) {
             if(brain.targetID < 0 || !world.pawns[brain.targetID].alive) {
                 brain.state    = BotFSMState::PATROL;
                 brain.targetID = -1;
+                brain.hasSightLine = false;
+                brain.lostSightTimer = 0.0f;
                 break;
             }
             Pawn& target = world.pawns[brain.targetID];
             Vector3 aimAt = { target.xform.pos.x,
-                              target.xform.pos.y + PLAYER_HEIGHT * 0.6f,
+                              target.xform.pos.y + target.height() * 0.6f,
                               target.xform.pos.z };
             AimAtTarget(bot, aimAt);
 
@@ -227,18 +264,30 @@ inline void UpdateBots(World& world, float dt) {
                 bot.velocity.y += GRAVITY * dt; if(bot.velocity.y < -50.0f) bot.velocity.y = -50.0f;
 
                 bool og = false;
-                bot.xform.pos = SweepAABB(bot.xform.pos, bot.velocity, dt, og, world.solids);
+                bot.xform.pos = SweepAABB(bot.xform.pos, bot.velocity, dt, og, world.solids, bot.height());
                 if(og && bot.velocity.y <= 0.0f) { bot.velocity.y = 0.0f; bot.onGround = true; } else if(!og) { bot.onGround = false; }
             }
 
-            // Shoot after reaction delay
-            if(brain.hasSightLine) {
+            bool frameSightLine = HasLineOfSightToTarget(bot, target, world);
+            if(frameSightLine) {
+                brain.hasSightLine = true;
+                brain.lostSightTimer = 0.0f;
+
                 brain.reactionTimer -= dt;
                 if(brain.reactionTimer <= 0) {
                     WeaponFire(bot, world, false);
                 }
             } else {
+                brain.hasSightLine = false;
+                brain.lastKnown = target.xform.pos;
                 brain.reactionTimer = BOT_REACTION_MS / 1000.0f;
+                brain.lostSightTimer += dt;
+
+                // Keep engage for a short grace window to avoid flickering states
+                // around corners, then transition to search.
+                if(brain.lostSightTimer >= 0.3f) {
+                    brain.state = BotFSMState::SEARCH;
+                }
             }
             break;
         }
@@ -249,16 +298,27 @@ inline void UpdateBots(World& world, float dt) {
             if(d < BOT_WAYPOINT_REACH * 2.0f) {
                 brain.state    = BotFSMState::PATROL;
                 brain.targetID = -1;
+                brain.hasSightLine = false;
+                brain.lostSightTimer = 0.0f;
             }
             break;
         }
         // ────────────────────────────────────────────────────────────────
         case BotFSMState::RETREAT: {
             // Move to nearest friendly waypoint (first waypoint on defend side)
-            if(world.waypoints.empty()) break;
+            if(world.waypoints.empty()) {
+                brain.state = BotFSMState::PATROL;
+                break;
+            }
             int nearest = NearestWaypoint(bot.xform.pos, world.waypoints);
             MoveBotToward(bot, world.waypoints[nearest].pos, dt, world.solids);
-            if(bot.hp > 50) brain.state = BotFSMState::PATROL; // recovered enough
+            brain.retreatTimer -= dt;
+            if(bot.hp > 50 || brain.retreatTimer <= 0.0f || world.aliveCount(bot.team) <= 1) {
+                brain.state = BotFSMState::PATROL;
+                brain.targetID = -1;
+                brain.hasSightLine = false;
+                brain.lostSightTimer = 0.0f;
+            }
             break;
         }
         }

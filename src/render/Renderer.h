@@ -5,15 +5,18 @@
 //  No shadow maps, no PBR; straight flat/unshaded colours → fast on Pi 4.
 // ─────────────────────────────────────────────────────────────────────────────
 #include "../World.h"
+#include "../weapons/WeaponSystem.h"
 #include <raylib.h>
 #include <raymath.h>
 #include <rlgl.h>
+#include <algorithm>
 #include <cmath>
 
 struct Renderer {
     RenderTexture2D renderTarget;   // 1280×720 offscreen
     Camera3D        cam3D;
     Font            uiFont;
+    Model           viewmodelGun;
 
     void Init() {
         renderTarget = LoadRenderTexture(RENDER_W, RENDER_H);
@@ -25,14 +28,24 @@ struct Renderer {
         cam3D.projection = CAMERA_PERSPECTIVE;
 
         uiFont = GetFontDefault();
+        viewmodelGun = LoadModelFromMesh(GenMeshCube(0.1f, 0.15f, 0.4f));
     }
 
     void Shutdown() {
+        UnloadModel(viewmodelGun);
         UnloadRenderTexture(renderTarget);
     }
 
     // ── Sync camera to player ──────────────────────────────────────────────
-    void SyncCamera(const Pawn& player) {
+    void SyncCamera(const Pawn& player, float dt) {
+        float targetFov = CAM_FOV;
+        if(player.alive && player.weapon.isADS) {
+            targetFov = (player.weapon.id == WeaponID::SNIPER) ? 28.0f : 58.0f;
+        }
+
+        float fovLerp = std::clamp(dt * 14.0f, 0.0f, 1.0f);
+        cam3D.fovy = Lerp1(cam3D.fovy, targetFov, fovLerp);
+
         cam3D.position = player.eyePos();
         cam3D.target   = Vector3Add(cam3D.position, player.lookDir());
     }
@@ -50,8 +63,16 @@ struct Renderer {
             DrawGrenades(world);
             DrawSmokes(world);
             DrawTracers(world);
+            DrawImpacts(world);
             DrawObjective(world);
 
+        EndMode3D();
+
+        // Render viewmodel in a separate pass so it never clips into the map.
+        BeginMode3D(cam3D);
+        rlDisableDepthTest();
+        DrawViewmodel(world);
+        rlEnableDepthTest();
         EndMode3D();
         EndTextureMode();
 
@@ -63,6 +84,33 @@ struct Renderer {
 
         // ── 3. HUD (drawn at native resolution) ──────────────────────────────
         DrawHUD(world, screenW, screenH);
+    }
+
+    // ─── Draw local player Viewmodel ─────────────────────────────────────────
+    void DrawViewmodel(const World& world) {
+        const Pawn& p = world.player();
+        if(!p.alive) return;
+
+        Vector3 eye = p.eyePos();
+
+        rlPushMatrix();
+        rlTranslatef(eye.x, eye.y, eye.z);
+
+        // Raylib yaw=0 is +Z. We yaw around Y axis.
+        rlRotatef(p.xform.yaw * RAD2DEG, 0, 1, 0);
+        // Pitch: rotate around X. 
+        // Our pitch logic: larger pitch views UP. LookDir has y=sin(pitch).
+        // Standard rlRotatef for X is counter-clockwise. Viewing from +X, +Z to +Y is CCW, so negative.
+        rlRotatef(-p.xform.pitch * RAD2DEG, 1, 0, 0);
+
+        // Translate the bounds of where we hold it exactly relative to our math
+        // Center of the model is 0.5 relative to the camera origin.
+        rlTranslatef(0.3f, -0.25f, 0.5f);
+
+        DrawModel(viewmodelGun, {0,0,0}, 1.0f, {80,80,90, 255});
+        DrawModelWires(viewmodelGun, {0,0,0}, 1.01f, {30,30,40, 255});
+
+        rlPopMatrix();
     }
 
 private:
@@ -80,8 +128,8 @@ private:
                 s.bounds.max.z - s.bounds.min.z
             };
             DrawCube(center, size.x, size.y, size.z, s.col);
-            // Draw wire slightly larger to give edge definition
-            DrawCubeWires(center, size.x + 0.01f, size.y + 0.01f, size.z + 0.01f,
+            // Draw wire slightly larger to give edge definition (increased offset to stop Z-fighting jitter)
+            DrawCubeWires(center, size.x + 0.04f, size.y + 0.04f, size.z + 0.04f,
                           { (unsigned char)(s.col.r/2),
                             (unsigned char)(s.col.g/2),
                             (unsigned char)(s.col.b/2), 120 });
@@ -110,17 +158,17 @@ private:
 
             // Body
             DrawCylinder(p.xform.pos, PLAYER_RADIUS, PLAYER_RADIUS,
-                         PLAYER_HEIGHT * 0.8f, 6, bodyCol);
+                         p.height() * 0.8f, 6, bodyCol);
             // Head
             Vector3 headPos = { p.xform.pos.x,
-                                p.xform.pos.y + PLAYER_HEIGHT * 0.9f,
+                                p.xform.pos.y + p.height() * 0.9f,
                                 p.xform.pos.z };
             DrawSphere(headPos, 0.22f, darkCol);
             // "Gun" stub
             Vector3 gunFwd = { sinf(p.xform.yaw) * 0.6f, 0.0f, cosf(p.xform.yaw) * 0.6f };
             Vector3 gunEnd = Vector3Add(Vector3Add(p.xform.pos,
-                                Vector3{0, PLAYER_HEIGHT*0.55f, 0}), gunFwd);
-            DrawLine3D(Vector3Add(p.xform.pos, {0, PLAYER_HEIGHT*0.55f, 0}),
+                                Vector3{0, p.height()*0.55f, 0}), gunFwd);
+            DrawLine3D(Vector3Add(p.xform.pos, {0, p.height()*0.55f, 0}),
                        gunEnd, RAYWHITE);
 
             // HP bar above head
@@ -144,11 +192,12 @@ private:
     // ─── Smoke spheres ───────────────────────────────────────────────────────
     void DrawSmokes(const World& world) {
         for(auto& s : world.smokes) {
-            float alpha = std::min(1.0f, s.lifeLeft / 2.0f); // fade in/out
-            Color c = { 155, 155, 155, (unsigned char)(180 * alpha) };
+            float alpha = std::min(1.0f, s.lifeLeft / 2.0f); // fade out at the end
+            // Full opacity during main lifetime (255) instead of transparent
+            Color c = { 155, 155, 155, (unsigned char)(255 * alpha) };
             DrawSphere(s.pos, s.radius, c);
             // Inner denser core
-            DrawSphere(s.pos, s.radius * 0.6f, { 130,130,130,(unsigned char)(220*alpha) });
+            DrawSphere(s.pos, s.radius * 0.6f, { 130,130,130,(unsigned char)(255 * alpha) });
         }
     }
 
@@ -158,6 +207,16 @@ private:
             float a = t.lifeSec / 0.06f;
             Color c = { t.col.r, t.col.g, t.col.b, (unsigned char)(t.col.a * a) };
             DrawLine3D(t.origin, t.end, c);
+        }
+    }
+
+    // ─── Bullet holes / Impacts ──────────────────────────────────────────────
+    void DrawImpacts(const World& world) {
+        for(auto& imp : world.impacts) {
+            float alpha = std::min(1.0f, imp.lifeSec); // Fade out last second
+            Color c = { 10, 10, 10, (unsigned char)(255 * alpha) };
+            // Draw a small distinct sphere for the impact point
+            DrawSphere(imp.pos, 0.035f, c);
         }
     }
 
@@ -194,11 +253,26 @@ private:
 
         // ── Crosshair ────────────────────────────────────────────────────
         int cx = sw/2, cy = sh/2;
-        int cs = 8 + (int)(world.player().weapon.stats().spreadRad * 400);
-        DrawRectangle(cx - 1, cy - cs, 2, cs - 3, WHITE);
-        DrawRectangle(cx - 1, cy + 3,  2, cs - 3, WHITE);
-        DrawRectangle(cx - cs, cy - 1, cs - 3, 2,  WHITE);
-        DrawRectangle(cx + 3,  cy - 1, cs - 3, 2,  WHITE);
+        float crossInaccuracy = ComputeShotInaccuracy(p, p.weapon.isADS);
+        bool scopedSniper = (p.weapon.id == WeaponID::SNIPER && p.weapon.isADS);
+        if(!scopedSniper) {
+            int cs = 6 + (int)(crossInaccuracy * 220.0f);
+            cs = std::clamp(cs, 6, 42);
+            DrawRectangle(cx - 1, cy - cs, 2, cs - 3, WHITE);
+            DrawRectangle(cx - 1, cy + 3,  2, cs - 3, WHITE);
+            DrawRectangle(cx - cs, cy - 1, cs - 3, 2,  WHITE);
+            DrawRectangle(cx + 3,  cy - 1, cs - 3, 2,  WHITE);
+            DrawRectangle(cx - 1, cy - 1, 2, 2, WHITE);
+        } else {
+            DrawLine(cx - 18, cy, cx + 18, cy, WHITE);
+            DrawLine(cx, cy - 18, cx, cy + 18, WHITE);
+        }
+
+        float normalizedInaccuracy = std::clamp(crossInaccuracy / 0.60f, 0.0f, 1.0f);
+        float accuracyPct = (1.0f - normalizedInaccuracy) * 100.0f;
+        char accText[24];
+        snprintf(accText, sizeof(accText), "ACC %.0f%%", accuracyPct);
+        DrawText(accText, cx - MeasureText(accText, 16)/2, cy + 26, 16, LIGHTGRAY);
 
         // ── Ammo ─────────────────────────────────────────────────────────
         auto& ws = p.weapon;
@@ -275,15 +349,34 @@ private:
 
     // ─── Mini-map ─────────────────────────────────────────────────────────────
     void DrawMinimap(const World& world, int ox, int oy, int size) {
-        // Determine world extents for scaling
-        float mapScale = size / 50.0f;  // 1 world unit = mapScale pixels
+        float minX = -25.0f, maxX = 25.0f;
+        float minZ = -25.0f, maxZ = 25.0f;
+        if(!world.solids.empty()) {
+            minX = world.solids[0].bounds.min.x;
+            maxX = world.solids[0].bounds.max.x;
+            minZ = world.solids[0].bounds.min.z;
+            maxZ = world.solids[0].bounds.max.z;
+            for(const auto& s : world.solids) {
+                minX = std::min(minX, s.bounds.min.x);
+                maxX = std::max(maxX, s.bounds.max.x);
+                minZ = std::min(minZ, s.bounds.min.z);
+                maxZ = std::max(maxZ, s.bounds.max.z);
+            }
+        }
+
+        float spanX = std::max(1.0f, maxX - minX);
+        float spanZ = std::max(1.0f, maxZ - minZ);
+        float worldSpan = std::max(spanX, spanZ);
+        float mapScale = (size - 10.0f) / worldSpan;
+        float centerX = (minX + maxX) * 0.5f;
+        float centerZ = (minZ + maxZ) * 0.5f;
 
         DrawRectangle(ox, oy, size, size, {0,0,0,160});
         DrawRectangleLines(ox, oy, size, size, GRAY);
 
         auto wToMap = [&](float wx, float wz) -> Vector2 {
-            return { ox + size/2.0f + wx * mapScale,
-                     oy + size/2.0f + wz * mapScale };
+            return { ox + size/2.0f + (wx - centerX) * mapScale,
+                     oy + size/2.0f + (wz - centerZ) * mapScale };
         };
 
         // Objective

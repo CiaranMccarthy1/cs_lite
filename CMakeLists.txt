@@ -25,7 +25,7 @@ FetchContent_MakeAvailable(raylib)
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 # Create executable
-add_executable(TacticalLite ${SOURCES} src/audio/AudioSystem.h)
+add_executable(TacticalLite ${SOURCES})
 
 # ─── Headers ──────────────────────────────────────────────────────────────────
 target_include_directories(TacticalLite PRIVATE src) # Simplified

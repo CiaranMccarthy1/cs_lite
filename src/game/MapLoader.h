@@ -28,6 +28,7 @@
 #include <sstream>
 #include <string>
 #include <stdexcept>
+#include <algorithm>
 #include <cmath>
 
 struct SpawnPoint {
@@ -37,6 +38,7 @@ struct SpawnPoint {
 };
 
 struct MapData {
+    bool isTestMap = false;
     std::vector<SpawnPoint> spawns;
 };
 
@@ -58,7 +60,10 @@ inline MapData LoadMap(const std::string& path, World& world) {
         std::string token;
         ss >> token;
 
-        if(token == "SOLID") {
+        if(token == "TESTMAP") {
+            md.isTestMap = true;
+        }
+        else if(token == "SOLID") {
             MapSolid s;
             float minX,minY,minZ,maxX,maxY,maxZ;
             int r,g,b;
@@ -68,18 +73,31 @@ inline MapData LoadMap(const std::string& path, World& world) {
             s.bounds = { {minX,minY,minZ}, {maxX,maxY,maxZ} };
             s.col    = { (unsigned char)r,(unsigned char)g,(unsigned char)b, 255 };
             s.isFloor = (floorTag == "floor");
-            world.solids.push_back(s);
+            if((int)world.solids.size() < MAX_SOLIDS) {
+                world.solids.push_back(s);
+            } else {
+                TraceLog(LOG_WARNING, "MapLoader: solid limit reached (%d)", MAX_SOLIDS);
+            }
         }
         else if(token == "WAYPOINT") {
             int id; float x,y,z;
             ss >> id >> x >> y >> z;
+            if(id < 0) {
+                TraceLog(LOG_WARNING, "MapLoader: negative waypoint id ignored: %d", id);
+                continue;
+            }
+            if(id >= MAX_WAYPOINTS) {
+                TraceLog(LOG_WARNING, "MapLoader: waypoint id exceeds MAX_WAYPOINTS: %d", id);
+                continue;
+            }
             if((int)world.waypoints.size() <= id)
                 world.waypoints.resize(id+1);
             world.waypoints[id].pos = {x,y,z};
         }
         else if(token == "EDGE") {
             int a,b; ss >> a >> b;
-            if(a < (int)world.waypoints.size() && b < (int)world.waypoints.size()) {
+            if(a >= 0 && b >= 0 &&
+               a < (int)world.waypoints.size() && b < (int)world.waypoints.size()) {
                 world.waypoints[a].neighbours.push_back(b);
                 world.waypoints[b].neighbours.push_back(a);
             }
@@ -87,11 +105,15 @@ inline MapData LoadMap(const std::string& path, World& world) {
         else if(token == "OBJECTIVE") {
             float x,y,z,r; ss >> x >> y >> z >> r;
             world.objective.pos    = {x,y,z};
-            world.objective.radius = r;
+            world.objective.radius = std::max(0.5f, r);
         }
         else if(token == "SPAWN") {
             int t; float x,y,z,yawDeg;
             ss >> t >> x >> y >> z >> yawDeg;
+            if(t != (int)Team::ATTACK && t != (int)Team::DEFEND) {
+                TraceLog(LOG_WARNING, "MapLoader: invalid spawn team id ignored: %d", t);
+                continue;
+            }
             md.spawns.push_back({ (Team)t, {x,y,z}, yawDeg * DEG2RAD });
         }
     }

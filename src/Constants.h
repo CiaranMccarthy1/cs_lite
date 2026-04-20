@@ -26,14 +26,19 @@ constexpr float OBJECTIVE_CAPTURE_SEC = 10.0f;  // hold to win
 // ─── Movement ────────────────────────────────────────────────────────────────
 constexpr float PLAYER_SPEED       = 4.2f;   // CS 1.6 running m/s
 constexpr float PLAYER_HEIGHT      = 1.75f;  // camera eye height
+constexpr float PLAYER_CROUCH_HEIGHT = 1.1f;
 constexpr float PLAYER_RADIUS      = 0.4f;
 constexpr float GRAVITY            = -20.0f;
 constexpr float JUMP_VELOCITY      = 6.8f;
 constexpr float MOUSE_SENSITIVITY  = 0.002f;
+constexpr float GROUND_FRICTION    = 7.5f;
+constexpr float GROUND_ACCEL       = 9.0f;
+constexpr float AIR_ACCEL          = 2.5f;
+constexpr float AIR_CONTROL_RATIO  = 0.12f;
 
 // ─── Camera ──────────────────────────────────────────────────────────────────
 constexpr float CAM_FOV            = 75.0f;
-constexpr float CAM_NEAR           = 0.05f;
+constexpr float CAM_NEAR           = 0.1f;
 constexpr float CAM_FAR            = 200.0f;
 
 // ─── Weapons ─────────────────────────────────────────────────────────────────
@@ -60,14 +65,14 @@ struct WeaponStats {
 };
 
 // Indexed by WeaponID
-constexpr std::array<WeaponStats, 5> WEAPON_TABLE = {{
-    // name,      dmg, mag, RPM,   reload, spread,  adsMult, range, pel,  semi
-    { "Pistol",    34,  12,  400, 2.2f,  0.030f, 0.40f,  80.0f,  1,  true  },
-    { "SMG",       26,  30,  800, 2.5f,  0.060f, 0.60f,  60.0f,  1,  false },
-    { "Rifle",     36,  30,  600, 3.1f,  0.025f, 0.30f, 150.0f,  1,  false },
-    { "Sniper",   115,  10,   40, 3.6f,  0.002f, 0.00f, 300.0f,  1,  true  }, // AWP (huge base dmg, no hipfire acc)
-    { "Shotgun",   22,   8,   70, 3.5f,  0.150f, 0.50f,  20.0f, 9,  false },
-}};
+constexpr std::array<WeaponStats, 5> WEAPON_TABLE = { {
+        // name,      dmg, mag, RPM,   reload, spread,  adsMult, range, pel,  semi
+        { "Pistol",    34,  12,  400, 2.2f,  0.0100f, 0.35f,  80.0f,  1,  true  },
+        { "SMG",       26,  30,  800, 2.5f,  0.0350f, 0.50f,  60.0f,  1,  false },
+        { "Rifle",     36,  30,  600, 3.1f,  0.0080f, 0.25f, 150.0f,  1,  false },
+        { "Sniper",   115,  10,   40, 3.6f,  0.0010f, 0.00f, 300.0f,  1,  true  },
+        { "Shotgun",   22,   8,   70, 3.5f,  0.1200f, 0.50f,  20.0f,  9,  false },
+    } };
 
 // ─── Utility ─────────────────────────────────────────────────────────────────
 enum class UtilityID : uint8_t { FRAG = 0, SMOKE = 1, STUN = 2 };
@@ -90,6 +95,7 @@ constexpr float BOT_WAYPOINT_REACH = 1.0f;   // metres – "close enough"
 
 // ─── Health ──────────────────────────────────────────────────────────────────
 constexpr int MAX_HP = 100;
+constexpr bool FRIENDLY_FIRE = false;
 
 // ─── Colours (flat palette) ───────────────────────────────────────────────────
 constexpr Color COL_ATTACK  = { 220,  80,  80, 255 };  // red

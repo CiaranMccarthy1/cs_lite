@@ -19,11 +19,12 @@ inline Vector3 SweepAABB(
     Vector3&                     vel,
     float                        dt,
     bool&                        hitFloor,
-    const std::vector<MapSolid>& solids)
+    const std::vector<MapSolid>& solids,
+    float                        pawnHeight = PLAYER_HEIGHT)
 {
     hitFloor = false;
     const float R = PLAYER_RADIUS + PHYS_SKIN;
-    const float H = PLAYER_HEIGHT;
+    const float H = pawnHeight;
 
     auto makeBox = [&](Vector3 p) -> BoundingBox {
         return { {p.x-R, p.y, p.z-R}, {p.x+R, p.y+H, p.z+R} };

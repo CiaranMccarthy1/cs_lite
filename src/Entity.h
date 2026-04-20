@@ -3,6 +3,7 @@
 //  Entity.h  –  All game entities as plain structs (no vtable overhead)
 // ─────────────────────────────────────────────────────────────────────────────
 #include "Constants.h"
+#include <array>
 #include <vector>
 #include <string>
 
@@ -29,6 +30,10 @@ struct WeaponState {
     float    fireCooldown= 0.0f;   // time until next shot allowed
     bool     isADS       = false;
 
+    // Recoil state
+    int      shotsFired  = 0;
+    float    timeSinceLastShot = 0.0f;
+
     const WeaponStats& stats() const { return WEAPON_TABLE[(int)id]; }
     bool canFire() const { return fireCooldown <= 0 && reloadTimer <= 0 && ammoMag > 0; }
 };
@@ -45,27 +50,50 @@ struct Pawn {
     Transform3D xform;
     Vector3     velocity = {0,0,0};
     bool        onGround = false;
+    bool        isCrouching = false;
 
     int         hp       = MAX_HP;
 
     WeaponState weapon;
+    std::array<WeaponState, (int)WeaponID::COUNT> weaponSlots;
 
     // Utility counts (each pawn starts with 1 of each)
     int         fragCount   = 1;
     int         smokeCount  = 1;
     int         stunCount   = 1;
 
+    void saveActiveWeaponSlot() {
+        // Reloads are intentionally interrupted on weapon switch.
+        if(weapon.reloadTimer > 0.0f) {
+            weapon.reloadTimer = 0.0f;
+        }
+        weaponSlots[(int)weapon.id] = weapon;
+    }
+
+    void equipWeapon(WeaponID nextId) {
+        if(nextId == weapon.id) return;
+        saveActiveWeaponSlot();
+        weapon = weaponSlots[(int)nextId];
+        weapon.isADS = false;
+    }
+
+    // Physics and visual height
+    float height() const {
+        return isCrouching ? PLAYER_CROUCH_HEIGHT : PLAYER_HEIGHT;
+    }
+
     // AABB for collision / raycasts (half-extents)
     BoundingBox bbox() const {
         float r = PLAYER_RADIUS;
+        float h = height();
         return {
-            { xform.pos.x - r, xform.pos.y,              xform.pos.z - r },
-            { xform.pos.x + r, xform.pos.y + PLAYER_HEIGHT, xform.pos.z + r }
+            { xform.pos.x - r, xform.pos.y,     xform.pos.z - r },
+            { xform.pos.x + r, xform.pos.y + h, xform.pos.z + r }
         };
     }
 
     Vector3 eyePos() const {
-        return { xform.pos.x, xform.pos.y + PLAYER_HEIGHT * 0.9f, xform.pos.z };
+        return { xform.pos.x, xform.pos.y + height() * 0.9f, xform.pos.z };
     }
 
     Vector3 lookDir() const {
@@ -74,6 +102,26 @@ struct Pawn {
             sinf(xform.pitch),
             cosf(xform.pitch) * cosf(xform.yaw)
         };
+    }
+
+    Vector3 gunTip() const {
+        // Matches the viewmodel transform perfectly
+        float ofsX = 0.3f;
+        float ofsY = -0.25f;
+        float ofsZ = 0.7f; // Center is 0.5, plus half a 0.4 box = 0.7
+
+        // Apply pitch (around local X axis)
+        float yp = ofsY * cosf(xform.pitch) + ofsZ * sinf(xform.pitch);
+        float zp = -ofsY * sinf(xform.pitch) + ofsZ * cosf(xform.pitch);
+        float xp = ofsX;
+
+        // Apply yaw (around global Y axis)
+        float xW = xp * cosf(xform.yaw) + zp * sinf(xform.yaw);
+        float zW = -xp * sinf(xform.yaw) + zp * cosf(xform.yaw);
+        float yW = yp;
+
+        Vector3 eye = eyePos();
+        return { eye.x + xW, eye.y + yW, eye.z + zW };
     }
 };
 
@@ -85,6 +133,14 @@ struct BulletTracer {
     Vector3 end;
     float   lifeSec = 0.06f;   // fades quickly
     Color   col     = {255,240,180,255};
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Impact Decal (Bullet hole)
+// ─────────────────────────────────────────────────────────────────────────────
+struct ImpactDecal {
+    Vector3 pos;
+    float   lifeSec = 3.0f;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -10,6 +10,8 @@ enum class AppState { MAIN_MENU, PLAYING, PAUSED, MATCH_OVER };
 struct MenuSystem {
   // Shared state
   AppState currentState = AppState::MAIN_MENU;
+  bool startMatchRequested = false;
+  bool playAgainRequested = false;
 
   // UI drawing helper
   bool DrawButton(Rectangle bounds, const char *text) {
@@ -38,6 +40,8 @@ struct MenuSystem {
 
   // Draw the main menu
   void DrawMainMenu(int sw, int sh, bool &quitIntent) {
+    playAgainRequested = false;
+    startMatchRequested = false;
     DrawRectangle(0, 0, sw, sh, {30, 30, 40, 255}); // Dim background
 
     int titleW = MeasureText("TACTICAL LITE", 60);
@@ -48,6 +52,7 @@ struct MenuSystem {
     int by = sh / 2 - 20;
 
     if (DrawButton({(float)bx, (float)by, (float)bw, (float)bh}, "PLAY GAME")) {
+      startMatchRequested = true;
       currentState = AppState::PLAYING;
       DisableCursor();
     }
@@ -75,6 +80,7 @@ struct MenuSystem {
     if (DrawButton({(float)bx, (float)by + 70, (float)bw, (float)bh},
                    "MAIN MENU")) {
       currentState = AppState::MAIN_MENU;
+      playAgainRequested = false;
     }
 
     if (DrawButton({(float)bx, (float)by + 140, (float)bw, (float)bh},
@@ -104,10 +110,7 @@ struct MenuSystem {
 
     if (DrawButton({(float)bx, (float)by, (float)bw, (float)bh},
                    "PLAY AGAIN")) {
-      // Signal main to reset match properly
-      world.roundState =
-          RoundState::MATCH_OVER; // this actually gets handled by RoundManager
-                                  // right now ideally but we can override it
+      playAgainRequested = true;
     }
 
     if (DrawButton({(float)bx, (float)by + 70, (float)bw, (float)bh},

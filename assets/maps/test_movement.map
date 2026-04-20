@@ -1,0 +1,12 @@
+# TESTMAP
+TESTMAP
+
+# Floor
+SOLID -30 0 -30 30 0.1 30 100 100 100 floor
+
+# A box or two to jump on
+SOLID 5 0 5 10 2 10 150 150 50 nonfloor
+SOLID -5 0 -10 -2 5 -8 50 150 50 nonfloor
+
+# Spawn for player (Team 0, x=0, y=0, z=0, yaw=0)
+SPAWN 0 0 0 0 0

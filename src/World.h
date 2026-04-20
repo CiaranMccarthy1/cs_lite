@@ -12,6 +12,7 @@ constexpr int MAX_PAWNS     = 6;   // 3v3
 constexpr int MAX_GRENADES  = 16;
 constexpr int MAX_SMOKES    = 8;
 constexpr int MAX_TRACERS   = 64;
+constexpr int MAX_IMPACTS   = 128;
 constexpr int MAX_SOLIDS    = 256;
 constexpr int MAX_WAYPOINTS = 64;
 
@@ -36,6 +37,7 @@ struct World {
     std::vector<GrenadeEntity>           grenades;
     std::vector<SmokeZone>               smokes;
     std::vector<BulletTracer>            tracers;
+    std::vector<ImpactDecal>             impacts;
 
     // ── Screen effects ────────────────────────────────────────────────────────
     StunState                            stun;
@@ -45,6 +47,7 @@ struct World {
     RoundState  roundState  = RoundState::WAITING;
     float       roundTimer  = ROUND_TIME_SEC;
     float       freezeTimer = 3.0f;   // pre-round freeze
+    float       roundOverTimer = 4.0f;
     Team        roundWinner = Team::NONE;
     int         scoreAttack = 0;
     int         scoreDefend = 0;

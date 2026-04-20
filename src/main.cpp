@@ -50,7 +50,7 @@ int main() {
   // Load map
   MapData md;
   try {
-    md = LoadMap("assets/maps/map01.map", world);
+    md = LoadMap("assets/maps/map01t.map", world);
   } catch (std::exception &e) {
     TraceLog(LOG_WARNING, "Map load failed: %s — using procedural fallback",
              e.what());
@@ -107,6 +107,17 @@ int main() {
     if (dt > 0.05f)
       dt = 0.05f;
 
+    if (menu.startMatchRequested) {
+      menu.startMatchRequested = false;
+      menu.playAgainRequested = false;
+      world.scoreAttack = 0;
+      world.scoreDefend = 0;
+      world.roundNumber = 1;
+      ResetRound(world, md);
+      menu.currentState = AppState::PLAYING;
+      DisableCursor();
+    }
+
     // ── ESC to pause / resume ─────────────────────────────────────────
     if (IsKeyPressed(KEY_ESCAPE) &&
         world.roundState != RoundState::MATCH_OVER) {
@@ -131,13 +142,15 @@ int main() {
       // Check if game transitioned to match over internally
       if (world.roundState == RoundState::MATCH_OVER) {
         menu.currentState = AppState::MATCH_OVER;
+        menu.playAgainRequested = false;
         EnableCursor();
       }
 
-      renderer.SyncCamera(world.player());
+      renderer.SyncCamera(world.player(), dt);
     } else if (menu.currentState == AppState::MATCH_OVER) {
       // Handle Match Over logic -> "Play Again" button overrides
-      if (IsKeyPressed(KEY_ENTER)) {
+      if (IsKeyPressed(KEY_ENTER) || menu.playAgainRequested) {
+        menu.playAgainRequested = false;
         world.scoreAttack = 0;
         world.scoreDefend = 0;
         world.roundNumber = 1;
@@ -155,7 +168,7 @@ int main() {
       frameTimeAccum = 0;
       frameCount = 0;
     }
-
+    
     // ── Draw ──────────────────────────────────────────────────────────
     int sw = GetScreenWidth(), sh = GetScreenHeight();
     BeginDrawing();
@@ -171,6 +184,13 @@ int main() {
       DrawText(fpsStr, 8, 8, 16,
                displayFPS >= 55 ? GREEN : (displayFPS >= 40 ? YELLOW : RED));
 
+      // Speed overlay (below FPS)
+      float speed = sqrtf(world.player().velocity.x * world.player().velocity.x + 
+                          world.player().velocity.z * world.player().velocity.z);
+      char speedStr[32];
+      snprintf(speedStr, sizeof(speedStr), "Speed: %.1f", speed);
+      DrawText(speedStr, 8, 28, 16, RAYWHITE);
+
       // Dead overlay
       if (!world.player().alive && world.roundState == RoundState::ACTIVE) {
         DrawRectangle(0, 0, sw, sh, {0, 0, 0, 120});
@@ -184,28 +204,11 @@ int main() {
       menu.DrawMainMenu(sw, sh, quitIntent);
     } else if (menu.currentState == AppState::PAUSED) {
       DrawRectangle(0, 0, sw, sh,
-                    {0, 0, 0, 180}); // Dim background deeper for pause
+                    {0, 0, 0, 180}); 
       menu.DrawPauseMenu(sw, sh, quitIntent);
     } else if (menu.currentState == AppState::MATCH_OVER) {
       DrawRectangle(0, 0, sw, sh, {0, 0, 0, 200});
       menu.DrawMatchOverScreen(sw, sh, world);
-
-      // If the UI decided to replay
-      if (world.roundState == RoundState::MATCH_OVER) {
-        // wait... UI sets state to MATCH_OVER? Actually we should let play
-        // again button reset
-        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-            CheckCollisionPointRec(
-                GetMousePosition(),
-                {(float)(sw / 2 - 125), (float)(sh / 2 + 20), 250, 50})) {
-          world.scoreAttack = 0;
-          world.scoreDefend = 0;
-          world.roundNumber = 1;
-          ResetRound(world, md);
-          menu.currentState = AppState::PLAYING;
-          DisableCursor();
-        }
-      }
     }
     EndDrawing();
   }
